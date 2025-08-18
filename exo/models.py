@@ -150,6 +150,8 @@ model_cards = {
   # phi
   "phi-3.5-mini": { "layers": 32, "repo": { "MLXDynamicShardInferenceEngine": "mlx-community/Phi-3.5-mini-instruct-4bit", }, },
   "phi-4": { "layers": 40, "repo": { "MLXDynamicShardInferenceEngine": "mlx-community/phi-4-4bit", }, },
+  # gpt
+  "gpt-oss-20b-8bit": { "layers": 48, "repo": { "MLXDynamicShardInferenceEngine": "lmstudio-community/gpt-oss-20b-MLX-8bit", }, },
   # dummy
   "dummy": { "layers": 8, "repo": { "DummyInferenceEngine": "dummy", }, },
 }
@@ -195,6 +197,7 @@ pretty_name = {
   "qwen-2.5-math-72b": "Qwen 2.5 72B (Math)",
   "phi-3.5-mini": "Phi-3.5 Mini",
   "phi-4": "Phi-4",
+  "gpt-oss-20b-8bit": "GPT-OSS 20B (8-bit)",
   "llama-3-8b": "Llama 3 8B",
   "llama-3-70b": "Llama 3 70B",
   "stable-diffusion-2-1-base": "Stable Diffusion 2.1",
