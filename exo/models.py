@@ -151,7 +151,7 @@ model_cards = {
   "phi-3.5-mini": { "layers": 32, "repo": { "MLXDynamicShardInferenceEngine": "mlx-community/Phi-3.5-mini-instruct-4bit", }, },
   "phi-4": { "layers": 40, "repo": { "MLXDynamicShardInferenceEngine": "mlx-community/phi-4-4bit", }, },
   # gpt
-  "gpt-oss-20b-8bit": { "layers": 48, "repo": { "MLXDynamicShardInferenceEngine": "lmstudio-community/gpt-oss-20b-MLX-8bit", }, },
+  "gpt-oss-20b-8bit": { "layers": 24, "repo": { "MLXDynamicShardInferenceEngine": "lmstudio-community/gpt-oss-20b-MLX-8bit", }, },
   # dummy
   "dummy": { "layers": 8, "repo": { "DummyInferenceEngine": "dummy", }, },
 }
