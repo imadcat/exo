@@ -37,14 +37,17 @@ class GptOssMoeModel(nn.Module):
       self.embed_tokens = nn.Embedding(args.vocab_size, args.hidden_size)
 
     # Initialize layer types (alternating sliding and full attention)
-    self.layer_types = args.layer_types or [
-      "sliding_attention",
-      "full_attention",
-    ] * (args.num_hidden_layers // 2)
+    if args.layer_types:
+      self.layer_types = args.layer_types
+    else:
+      # Create alternating pattern to match num_hidden_layers
+      pattern = ["sliding_attention", "full_attention"]
+      self.layer_types = [pattern[i % 2] for i in range(args.num_hidden_layers)]
     
     self.window_size = args.sliding_window
-    self.swa_idx = self.layer_types.index("sliding_attention")
-    self.ga_idx = self.layer_types.index("full_attention")
+    # Find the first occurrence of each attention type for cache indexing
+    self.swa_idx = next((i for i, lt in enumerate(self.layer_types) if lt == "sliding_attention"), 0)
+    self.ga_idx = next((i for i, lt in enumerate(self.layer_types) if lt == "full_attention"), 1)
 
     self.layers = []
     for i in range(self.num_hidden_layers):
@@ -69,9 +72,17 @@ class GptOssMoeModel(nn.Module):
     if cache is None:
       cache = [None]*len(self.layers)
 
+    # Ensure cache is the right length
+    if len(cache) != len(self.layers):
+      cache = cache[:len(self.layers)] if len(cache) > len(self.layers) else cache + [None] * (len(self.layers) - len(cache))
+
     # Create masks for both full and sliding window attention
-    full_mask = create_attention_mask(h, cache[self.ga_idx] if len(cache) > self.ga_idx and cache[self.ga_idx] is not None else None)
-    swa_mask = create_attention_mask(h, cache[self.swa_idx] if len(cache) > self.swa_idx and cache[self.swa_idx] is not None else None, window_size=self.window_size)
+    # Use the first occurrence of each attention type for mask creation
+    ga_cache = cache[self.ga_idx] if self.ga_idx < len(cache) else None
+    swa_cache = cache[self.swa_idx] if self.swa_idx < len(cache) else None
+    
+    full_mask = create_attention_mask(h, ga_cache)
+    swa_mask = create_attention_mask(h, swa_cache, window_size=self.window_size)
 
     for layer, c, layer_type in zip(self.layers, cache, self.layer_types):
       mask = full_mask if layer_type == "full_attention" else swa_mask
