@@ -72,19 +72,28 @@ class GptOssMoeModel(nn.Module):
     if cache is None:
       cache = [None]*len(self.layers)
 
-    # Ensure cache is the right length
-    if len(cache) != len(self.layers):
-      cache = cache[:len(self.layers)] if len(cache) > len(self.layers) else cache + [None] * (len(self.layers) - len(cache))
+    # Ensure cache matches the number of layers
+    while len(cache) < len(self.layers):
+      cache.append(None)
+    cache = cache[:len(self.layers)]
 
     # Create masks for both full and sliding window attention
     # Use the first occurrence of each attention type for mask creation
-    ga_cache = cache[self.ga_idx] if self.ga_idx < len(cache) else None
-    swa_cache = cache[self.swa_idx] if self.swa_idx < len(cache) else None
+    ga_cache = cache[self.ga_idx] if 0 <= self.ga_idx < len(cache) else None
+    swa_cache = cache[self.swa_idx] if 0 <= self.swa_idx < len(cache) else None
     
     full_mask = create_attention_mask(h, ga_cache)
     swa_mask = create_attention_mask(h, swa_cache, window_size=self.window_size)
 
-    for layer, c, layer_type in zip(self.layers, cache, self.layer_types):
+    # Ensure layer_types matches the number of layers
+    layer_types_iter = self.layer_types[:len(self.layers)]
+    if len(layer_types_iter) < len(self.layers):
+      # Extend with the pattern if needed
+      pattern = ["sliding_attention", "full_attention"]
+      for i in range(len(layer_types_iter), len(self.layers)):
+        layer_types_iter.append(pattern[i % 2])
+
+    for layer, c, layer_type in zip(self.layers, cache, layer_types_iter):
       mask = full_mask if layer_type == "full_attention" else swa_mask
       h = layer(h, mask, c)
 
@@ -113,8 +122,11 @@ class Model(nn.Module):
     return out
 
   def sanitize(self, weights):
-    # First check if weights are already sanitized
-    if any("gate_proj.weight" in k for k in weights.keys()):
+    # Check if weights are already sanitized by looking for the split gate/up projections
+    # In gpt_oss, gate_up_proj is split into gate_proj and up_proj during sanitization
+    is_sanitized = any("gate_proj.weight" in k for k in weights.keys()) or not any("gate_up_proj" in k for k in weights.keys())
+    
+    if is_sanitized:
       # Already sanitized, now filter by shard
       shard_state_dict = {}
       for key, value in weights.items():
